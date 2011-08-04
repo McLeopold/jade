@@ -109,7 +109,23 @@ if (watchers && !files.length) {
   process.stdin.on('data', function(chunk){
     buf += chunk;
   }).on('end', function(){
-    console.log(jade.render(buf, options));
+    // check for layout
+    if (options.layout) {
+      var layoutFile = options.layout + '.jade';
+      fs.lstat(layoutFile, function(err, stat) {
+        if (err) throw err;
+        // Found layout file
+        if (!options.locals) options.locals = {};
+        if (!options.locals.title) options.locals.title = '';
+        options.locals.body = jade.render(buf, options);
+        jade.renderFile(layoutFile, options, function(err, html) {
+          if (err) throw err;
+          console.log(html);
+        });
+      });
+    } else {
+      console.log(jade.render(buf, options));
+    }
   }).resume();
 }
 
@@ -143,7 +159,23 @@ function processFile(path) {
 function renderJade(jadefile) {
   jade.renderFile(jadefile, options, function(err, html) {
     if (err) throw err;
-    writeFile(jadefile, html);
+    // check for layout
+    if (options.layout) {
+      var layoutFile = options.layout + '.jade';
+      fs.lstat(layoutFile, function(err, stat) {
+        if (err) throw err;
+        // Found layout file
+        if (!options.locals) options.locals = {};
+        if (!options.locals.title) options.locals.title = jadefile;
+        options.locals.body = html;
+        jade.renderFile(layoutFile, options, function(err, html) {
+          if (err) throw err;
+          writeFile(jadefile, html);
+        });
+      });
+    } else {
+      writeFile(jadefile, html);
+    }
   });
 }
 
